@@ -6,8 +6,6 @@ app = Flask(__name__)
 AUTH_TOKEN = 'ProcessoSeletivoStract2025' 
 API_BASE_URL = 'https://sidebar.stract.to'
 
-
-
 def todos_campos(plataforma):
     campos = [] # Lista de 'field' da plataforma
     camposNomes = [] # Lista de 'name' da plataforma
@@ -21,7 +19,7 @@ def todos_campos(plataforma):
             data = response.json()
             for field in data.get('fields', []):
                 campos.append(field.get('value')) 
-                camposNomes.append(field.get('name'))
+                camposNomes.append(field.get('text'))
             
             # Verificar se há mais páginas
             pagination = data.get('pagination', {})
@@ -32,12 +30,13 @@ def todos_campos(plataforma):
         else:
             
             break
+            
     return campos, camposNomes
 
 def todos_insights(plataforma, todos_campos):
     dados = {} #dicionario que armazena os insights de cada anuncio de cada conta
     pagina = 1 
-    print(todos_campos)
+    
     # O while serve para pegar todas as contas da plataforma, passando por todas as páginas
     while True:
         api_url = f'{API_BASE_URL}/api/accounts?platform={plataforma}&page={pagina}'
@@ -53,7 +52,9 @@ def todos_insights(plataforma, todos_campos):
                 #Aqui pega todos insights de todos campos da conta
                 api_url2 = f'{API_BASE_URL}/api/insights?platform={plataforma}&account={id}&token={token}&fields={",".join(todos_campos)}'
                 response2 = requests.get(api_url2, headers={'Authorization': f'Bearer {AUTH_TOKEN}'})
+                
                 dados[id] =response2.json()
+                
 
             # Verificar se há mais páginas
             pagination = data.get('pagination', {})
@@ -64,20 +65,19 @@ def todos_insights(plataforma, todos_campos):
         else:
             
             break
-    #print(dados)
+    
     return dados
 
-def nomePlataforma(plataforma):
+def getNomePlataforma(plataforma):
     #/api/platforms
     api_url = f'{API_BASE_URL}/api/platforms'
     response = requests.get(api_url, headers={'Authorization': f'Bearer {AUTH_TOKEN}'})
     if response.status_code == 200:
-        data = response.json()
-        for platform in data.get('platforms', []):
-           if platform["value"] == plataforma:
+        dados = response.json()
+        print(dados)
+        for platform in dados.get('platforms', []):
+           if platform["value"] == plataforma:    
             return platform["text"]
-           else:
-            return "Plataforma não encontrada"
 
 @app.route("/")
 def index ():
@@ -92,8 +92,11 @@ def index ():
 def plataforma(plataforma):
     campos, camposNomes = todos_campos(plataforma)
     response = todos_insights(plataforma, campos)
-    
-    return render_template('plataforma.html', plataforma=nomePlataforma(plataforma),campos = camposNomes, dados=response)
-    
+    nomePlataforma=getNomePlataforma(plataforma)
+    print (campos)
+    print(camposNomes)
+    print(response)
+    return render_template('plataforma.html',plataforma= nomePlataforma ,camposNomes = camposNomes, dados=response, campos=campos)
+    #return jsonify(response)
 
 app.run(debug=True)
