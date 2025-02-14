@@ -48,12 +48,21 @@ def todos_insights(plataforma, todos_campos):
             for account in data.get('accounts', []):
                 id = account.get('id') 
                 token = account.get('token')
+                name = account.get('name')
                 
                 #Aqui pega todos insights de todos campos da conta
                 api_url2 = f'{API_BASE_URL}/api/insights?platform={plataforma}&account={id}&token={token}&fields={",".join(todos_campos)}'
                 response2 = requests.get(api_url2, headers={'Authorization': f'Bearer {AUTH_TOKEN}'})
+                if response2.status_code == 200:
+                    insights = response2.json()
+
+                    # Adiciona o nome da conta a cada insight
+                    for insight in insights.get('insights', []):
+                        insight['name'] = name  # Adiciona o campo 'name' com o nome da conta
+
+                    # Armazena os insights com o nome da conta no dicionário dados
+                    dados[id] = {'insights': insights}
                 
-                dados[id] =response2.json()
                 
 
             # Verificar se há mais páginas
@@ -65,16 +74,16 @@ def todos_insights(plataforma, todos_campos):
         else:
             
             break
-    
+    print(dados)
     return dados
 
 def getNomePlataforma(plataforma):
-    #/api/platforms
+    #/api/platformsj
     api_url = f'{API_BASE_URL}/api/platforms'
     response = requests.get(api_url, headers={'Authorization': f'Bearer {AUTH_TOKEN}'})
     if response.status_code == 200:
         dados = response.json()
-        print(dados)
+        #print(dados)
         for platform in dados.get('platforms', []):
            if platform["value"] == plataforma:    
             return platform["text"]
@@ -93,9 +102,7 @@ def plataforma(plataforma):
     campos, camposNomes = todos_campos(plataforma)
     response = todos_insights(plataforma, campos)
     nomePlataforma=getNomePlataforma(plataforma)
-    print (campos)
-    print(camposNomes)
-    print(response)
+    
     return render_template('plataforma.html',plataforma= nomePlataforma ,camposNomes = camposNomes, dados=response, campos=campos)
     #return jsonify(response)
 

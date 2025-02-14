@@ -4,25 +4,29 @@
       <table class="table table-striped table-responsive table-bordered">
          <thead class="thead-default">
                 <th>Platform</th>
-                
+                <th> Nome Conta </th>
                 {% for campo in camposNomes %}
                     <th>{{ campo }}</th>
                 {% endfor %}
                 
         </thead>
         <tbody>
+            
             {% for key, value in dados.items() %}
-                {% for insight in value.insights %} 
+                {% for insight_data in value.insights.insights  %}
                     <tr>
                         <td>{{ plataforma }}</td> <!-- Exibe o nome da plataforma -->
+                        <td>{{ insight_data.name }}</td> 
                         {% for campo in campos %}
                             {% if campo != 'id' %}
-                                <td>{{ insight[campo] }}</td> <!-- Exibe o valor correspondente ao campo na ordem correta -->
+                                <td>{{ insight_data[campo] }}</td> <!-- Exibe o valor correspondente ao campo na ordem correta -->
                             {% endif %}
-                        {% endfor %} 
-                    </tr>   
+                        {% endfor %}
+                    </tr>
+       
                 {% endfor %}
             {% endfor %}
+            
 
         </tbody>
      </table>
