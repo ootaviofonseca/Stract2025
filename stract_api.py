@@ -1,3 +1,4 @@
+from collections import defaultdict
 from flask import Flask, jsonify, render_template
 import requests
 
@@ -49,7 +50,7 @@ def todos_insights(plataforma, todos_campos):
                 id = account.get('id') 
                 token = account.get('token')
                 name = account.get('name')
-                
+
                 #Aqui pega todos insights de todos campos da conta
                 api_url2 = f'{API_BASE_URL}/api/insights?platform={plataforma}&account={id}&token={token}&fields={",".join(todos_campos)}'
                 response2 = requests.get(api_url2, headers={'Authorization': f'Bearer {AUTH_TOKEN}'})
@@ -74,7 +75,6 @@ def todos_insights(plataforma, todos_campos):
         else:
             
             break
-    print(dados)
     return dados
 
 def getNomePlataforma(plataforma):
@@ -87,6 +87,40 @@ def getNomePlataforma(plataforma):
         for platform in dados.get('platforms', []):
            if platform["value"] == plataforma:    
             return platform["text"]
+
+def resumo_todos_insights( todosDados, camposNomes):
+    agrupadoNomes = {}
+    grupoFinal = {}
+    for key, value in todosDados.items():
+        insights = value.get('insights', {}).get('insights', [])
+        for insight in insights:
+            # Usamos o campo 'name' para agrupar os objetos
+            nome = insight.get('name')
+            if nome in agrupadoNomes:
+                agrupadoNomes[nome].append(insight)
+            else:
+                agrupadoNomes[nome] = [insight]
+    
+    for name, value in agrupadoNomes.items():
+        if name not in grupoFinal:
+            grupoFinal[name] = {campo: None for campo in camposNomes}
+        for insight in value:
+                for campo in camposNomes:
+                    campo_valor = insight.get(campo)
+                    if campo_valor is not None:
+                        if isinstance(campo_valor, (int, float)):
+                            if grupoFinal[name][campo] is None:
+                                grupoFinal[name][campo] = 0  
+                            if name in grupoFinal:
+                                grupoFinal[name][campo] += insight[campo]
+                                grupoFinal[name][campo] = round(grupoFinal[name][campo], 3)
+
+
+
+    print(grupoFinal)
+    # Converter de volta para um dicionário regular, se necessário
+    return grupoFinal
+
 
 @app.route("/")
 def index ():
@@ -106,4 +140,12 @@ def plataforma(plataforma):
     return render_template('plataforma.html',plataforma= nomePlataforma ,camposNomes = camposNomes, dados=response, campos=campos)
     #return jsonify(response)
 
+@app.route("/<plataforma>/resumo", methods=['GET'])
+def platafroamResumo(plataforma):
+    nomePlataforma=getNomePlataforma(plataforma)
+    campos, camposNomes = todos_campos(plataforma)
+    response = todos_insights(plataforma, campos)
+    resumo = resumo_todos_insights(response, campos)
+    
+    return render_template('plataforma_resumo.html', plataforma= nomePlataforma ,camposNomes = camposNomes, dados=resumo, campos=campos)
 app.run(debug=True)
