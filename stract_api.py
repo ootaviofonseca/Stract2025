@@ -7,7 +7,6 @@ app = Flask(__name__)
 AUTH_TOKEN = 'ProcessoSeletivoStract2025' 
 API_BASE_URL = 'https://sidebar.stract.to'
 
-
 def todos_campos(plataforma):
     campos = [] # Lista de 'field' da plataforma
     camposNomes = [] # Lista de 'name' da plataforma
@@ -123,6 +122,7 @@ def resumo_todos_insights( todosDados, camposNomes):
     return grupoFinal
 
 def getGeral():
+    #Essa funcao pega todos os dados de todas as plataformas
     todasPlataformas = []
     nomesPlataforma = []
     todosCampos = []
@@ -143,24 +143,35 @@ def getGeral():
             todosCamposNomes.extend(camposNomes)
             todasPlataformas.append(plataforma) 
             geral_dados[plataforma] = todos_insights(plataforma, todosCampos)
-           
-        
-
-        #print(todosCampos)
-        #print(todosCamposNomes)  
-
-    
+     
     for i, nome in enumerate(todosCamposNomes):
         if nome not in agrupados:
             agrupados[nome] = []  # Inicializa uma lista para os campos correspondentes
         agrupados[nome].append(todosCampos[i])  # Agrupa os valores de todosCampos
 
-    # Elimina as duplicatas e mostra o resultado agrupado
-    #print (agrupados)
-   # print(nomesPlataforma)
-    #print(geral_dados) 
+    
     return geral_dados, agrupados, nomesPlataforma
 
+def resumoPorPlataforma(plataforma):
+    resumo = {}
+
+    campos, camposNomes = todos_campos(plataforma)
+    response = todos_insights(plataforma, campos)
+
+    for key, value in response.items():
+        insights = value.get('insights', {}).get('insights', [])
+        for insight in insights:
+            
+            for campo, valor in insight.items():
+                if isinstance(valor, (int, float)):
+                    if campo not in resumo:
+                        resumo[campo] = 0  
+                    resumo[campo] = round(resumo[campo] + valor, 3)
+                else:
+                    resumo[campo] = '-'    
+ 
+    return resumo, camposNomes, campos
+    
 @app.route("/")
 def index ():
     meus_dados = {
@@ -195,5 +206,26 @@ def geral():
     # Agora você tem todos os dados no formato necessário. Exibindo-os em uma página HTML ou retornando como JSON:
     return render_template('geral.html', dados=geral_dados, agrupados=agrupados, nomesPlataforma=nomesPlataforma)
 
+@app.route("/geral/resumo", methods=['GET'])
+def geralResumo():
+    resumos = {}
+    agrupados = {}
+    api_url = f'{API_BASE_URL}/api/platforms'
+    response = requests.get(api_url, headers={'Authorization': f'Bearer {AUTH_TOKEN}'})
+    if response.status_code == 200:
+        dados = response.json()
+        for platform in dados.get('platforms', []):
+            plataforma = platform["value"]
+            nome = platform['text']
+            resumo, camposNomes, campos  = resumoPorPlataforma(plataforma)
+            for campo in camposNomes:
+                if campo not in agrupados:
+                    agrupados[campo] = []
+                agrupados[campo].append(campos[camposNomes.index(campo)])
+            resumos[nome] = resumo
+    
+    
+    
+    return render_template('geral_resumo.html', dados=resumos, agrupados=agrupados)
 
 app.run(debug=True)
