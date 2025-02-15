@@ -1,0 +1,69 @@
+{% extends "tamplate.html" %}
+{%block conteudo%}
+
+      <table class="table table-striped table-responsive table-bordered">
+         <thead class="thead-default">
+                <th>Platform</th>
+                
+                
+                {% for agrupado in agrupados %}
+                    <th>{{ agrupado }}</th>
+                {% endfor %}
+
+                <th> Nome Conta </th>
+                
+        </thead>
+        <tbody>
+            
+            {% for plataforma, value in dados.items() %}
+                {% set i = loop.index0 %} 
+                {% for key, insights in value.items() %}
+
+                    {% for chave, insightsdata in insights.items() %}
+                        
+                        {% for ins, dadosUnicos in insightsdata.items() %}
+                                
+                            {% for dados in dadosUnicos %}
+                                <tr>
+                                    <td>{{ nomesPlataforma[i] }}</td> 
+                                    
+                                    {% for key, agrupado in agrupados.items() %}
+                                    {% set ns = namespace(parar=false) %}
+                                            {% for campo in agrupado %}
+                                                {%if not ns.parar %}
+                                                    {% if campo != 'id' %}
+                                                        {%if campo in dados %}
+                                                            {% set ns.parar = true %}    
+                                                            <td>{{ dados[campo] }}</td>
+                                                            
+                                                        {%elif plataforma == 'ga4'%}
+                                                            {% if campo == 'cpc'  %}
+                                                                {% set  x = dados['cost']/dados['clicks']%}
+                                                                <td>{{ x }}</td>
+                                                                {% set ns.parar = true %} 
+                                                            {%endif%}
+                                                        {%endif%}
+                                                    {% endif %} 
+                                                {%endif%}	
+                                            {% endfor %} 
+                                            {% if ns.parar == false %}
+                                                <td>-</td>
+                                            {% endif %}
+                                    {% endfor %}
+                                    <td>{{dados['name']}}</td>
+                                
+                                </tr>
+                            {% endfor %}
+                            
+                            
+                        {% endfor %}
+                    {% endfor %}
+                </tr> 
+                {% endfor %}
+            {% endfor %}
+            
+
+        </tbody>
+     </table>
+{%endblock%}
+  
